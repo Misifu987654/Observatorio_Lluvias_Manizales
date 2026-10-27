@@ -1,0 +1,21 @@
+{
+  "projects": {
+    "default": "observatorio-lluvias"
+  },
+  "targets": {
+    "observatorio-lluvias": {
+      "hosting": {
+        "dev": [
+          "observatorio-dev-misifu"
+        ],
+        "qa": [
+          "observatorio-qa-misifu"
+        ],
+        "prod": [
+          "observatorio-prod-misifu"
+        ]
+      }
+    }
+  },
+  "etags": {}
+}
