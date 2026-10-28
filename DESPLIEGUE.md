@@ -131,13 +131,12 @@ Precios y límites consultados en octubre de 2026. Conviene revisar las páginas
 
 | Campo | Respuesta |
 |---|---|
-| Integrantes | [COMPLETAR] |
+| Integrantes | [Eduard Stiven Jimenez - Nicolas Casas Bedoya - Stiven Rodas] |
 | Modalidad | Aplicación base proporcionada por el docente |
 | Plataforma principal | Firebase Hosting + Render (API) + Neon (BD) |
-| Repositorio | [COMPLETAR: URL de GitHub] |
+| Repositorio | [COMPLETAR: https://github.com/Misifu987654/Observatorio_Lluvias_Manizales] |
 | URL DEV / QA / PDN | Ver sección 2 |
 | API DEV / QA / PDN | Ver sección 2 |
 | Base de datos y persistencia | PostgreSQL en Neon, una base por ambiente, sin credenciales en el repositorio |
-| Pipeline | [COMPLETAR: enlace a la pestaña Actions o captura de una ejecución] |
-| Video | [COMPLETAR: enlace con permisos de visualización] |
+| Pipeline | [https://github.com/Misifu987654/Observatorio_Lluvias_Manizales/actions] |
 | Costos y limpieza | Secciones 8 y 10 |
