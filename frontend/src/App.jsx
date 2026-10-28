@@ -135,7 +135,7 @@ export default function App() {
         <div className="page-heading">
           <div>
             <div className="eyebrow"><MapPin size={13}/> MANIZALES, CALDAS</div>
-            <h1>{active === 'dashboard' ? 'Resumen de eventos (Modo DEV)' : currentNav.label}</h1>
+            <h1>{active === 'dashboard' ? 'Resumen de eventos' : currentNav.label}</h1>
             <p>Consulta y registra precipitaciones, movilidad y eventos de ladera.</p>
           </div>
           {active !== 'dashboard' && <button className="primary-button" onClick={() => { setShowForm(!showForm); setNotice({ type: '', text: '' }) }}>
