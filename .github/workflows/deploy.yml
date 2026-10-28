@@ -1,0 +1,111 @@
+name: CI/CD Observatorio
+
+# develop -> DEV | qa -> QA | main -> PDN (con aprobación manual)
+on:
+  push:
+    branches: [develop, qa, main]
+  pull_request:
+    branches: [develop, qa, main]
+
+jobs:
+  # ---------------------------------------------------------------
+  # 1. Pruebas y compilación (corre en push y en pull request).
+  #    Si algo falla aquí, el pipeline se detiene y NO se despliega.
+  # ---------------------------------------------------------------
+  test:
+    name: Pruebas y compilación
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Frontend - instalar dependencias
+        working-directory: frontend
+        run: npm ci
+
+      - name: Frontend - pruebas (si el proyecto las define)
+        working-directory: frontend
+        run: npm test --if-present
+
+      - name: Frontend - compilar
+        working-directory: frontend
+        run: npm run build
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+          cache: maven
+
+      - name: Backend - pruebas y empaquetado
+        working-directory: backend
+        run: mvn -B verify
+
+  # ---------------------------------------------------------------
+  # 2. Despliegue del frontend (solo en push, nunca en pull request).
+  #    El ambiente de GitHub se llama develop, qa o production.
+  #    'production' tiene revisores obligatorios = aprobación explícita.
+  # ---------------------------------------------------------------
+  deploy:
+    name: Desplegar frontend
+    needs: test
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    environment: ${{ github.ref_name == 'main' && 'production' || github.ref_name }}
+    env:
+      TARGET: ${{ github.ref_name == 'develop' && 'dev' || (github.ref_name == 'qa' && 'qa' || 'prod') }}
+      # Variables definidas en cada Environment de GitHub (Settings > Environments)
+      VITE_API_URL: ${{ vars.API_URL }}
+      API_URL: ${{ vars.API_URL }}
+      SITE_URL: ${{ vars.SITE_URL }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Instalar dependencias
+        working-directory: frontend
+        run: npm ci
+
+      - name: Compilar con la URL de API del ambiente
+        working-directory: frontend
+        run: npm run build
+
+      - name: Desplegar a Firebase Hosting (target ${{ env.TARGET }})
+        working-directory: frontend
+        env:
+          SA_JSON: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_OBSERVATORIO_LLUVIAS }}
+        run: |
+          printf '%s' "$SA_JSON" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          npx --yes firebase-tools deploy --only "hosting:$TARGET" --project observatorio-lluvias --non-interactive
+          rm -f "$RUNNER_TEMP/sa.json"
+
+      # La API en Render puede estar "dormida": se reintenta hasta ~3 minutos.
+      - name: Prueba de humo
+        run: |
+          curl --fail --silent --show-error --retry 12 --retry-delay 15 --retry-all-errors --max-time 60 "$API_URL/actuator/health"
+          echo
+          curl --fail --silent --show-error --retry 3 --retry-delay 5 --retry-all-errors --max-time 60 "$API_URL/api/dashboard/summary" -o /dev/null
+          curl --fail --silent --show-error --retry 3 --retry-delay 5 --retry-all-errors --max-time 60 "$SITE_URL" -o /dev/null
+          echo "Prueba de humo OK en $TARGET"
+
+      - name: Registrar versión y resultado
+        if: always()
+        run: |
+          {
+            echo "### Despliegue ${TARGET}"
+            echo "- Commit: ${{ github.sha }}"
+            echo "- Rama: ${{ github.ref_name }}"
+            echo "- Resultado: ${{ job.status }}"
+            echo "- URL: ${SITE_URL}"
+          } >> "$GITHUB_STEP_SUMMARY"
